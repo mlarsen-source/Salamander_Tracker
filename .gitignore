@@ -427,3 +427,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+
+*.mp4
+*.jpg
+*.jpeg
