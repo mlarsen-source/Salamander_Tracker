@@ -1,0 +1,21 @@
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.metricValue {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.timelinePanel {
+  margin-top: 1rem;
+}
+
+.timelineSummary {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 0;
+}

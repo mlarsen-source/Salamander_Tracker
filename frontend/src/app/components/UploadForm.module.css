@@ -1,0 +1,16 @@
+.uploadForm {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stopButton {
+  background: #d32f2f;
+}
+
+.errorText {
+  color: #ff6b6b;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+}

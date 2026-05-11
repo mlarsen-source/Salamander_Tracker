@@ -1,0 +1,11 @@
+.streamFrame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.streamImage {
+  width: 100%;
+  height: auto;
+  display: block;
+}
