@@ -11,6 +11,7 @@ import {
 
 export default function HomePage() {
   const [file, setFile] = useState<File | null>(null);
+  const [starting, setStarting] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<StreamMetrics | null>(null);
@@ -19,7 +20,7 @@ export default function HomePage() {
 
   // Poll metrics while streaming
   useEffect(() => {
-    if (!streaming) {
+    if (!streaming || !streamUrl) {
       if (metricsIntervalRef.current) {
         clearInterval(metricsIntervalRef.current);
         metricsIntervalRef.current = null;
@@ -37,15 +38,22 @@ export default function HomePage() {
           setStreaming(false);
         }
       } catch (err) {
-        console.error("Failed to fetch metrics:", err);
+        // Silently ignore "No stream in progress" errors during startup or shutdown
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        if (!errorMsg.includes("No stream in progress")) {
+          console.error("Failed to fetch metrics:", err);
+        }
       }
     };
 
-    // Poll immediately, then every 500ms
-    pollMetrics();
-    metricsIntervalRef.current = setInterval(pollMetrics, 500);
+    // Wait 1 second before polling to allow stream to initialize
+    const startDelay = setTimeout(() => {
+      void pollMetrics();
+      metricsIntervalRef.current = setInterval(pollMetrics, 500);
+    }, 1000);
 
     return () => {
+      clearTimeout(startDelay);
       if (metricsIntervalRef.current) {
         clearInterval(metricsIntervalRef.current);
       }
@@ -61,14 +69,18 @@ export default function HomePage() {
 
     setError(null);
     setMetrics(null);
+    setStreamUrl(null);
 
     try {
-      setStreaming(true);
+      setStarting(true);
       const response = await startStream(file);
       setStreamUrl(response.stream_url);
+      setStreaming(true);
     } catch (err) {
-      setStreaming(false);
       setError(err instanceof Error ? err.message : "Failed to start stream.");
+      setStreaming(false);
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -79,6 +91,7 @@ export default function HomePage() {
       console.error("Failed to stop stream:", err);
     } finally {
       setStreaming(false);
+      setStarting(false);
       setStreamUrl(null);
       setMetrics(null);
     }
@@ -89,10 +102,6 @@ export default function HomePage() {
         metrics.detection_count_over_time.length - 1
       ].count
     : 0;
-
-  const trackedSalamanders = Object.entries(
-    metrics?.time_on_screen_by_track_id || {}
-  );
 
   return (
     <main>
@@ -108,7 +117,7 @@ export default function HomePage() {
           <input
             type="file"
             accept="video/*"
-            disabled={streaming}
+            disabled={streaming || starting}
             onChange={(event) => {
               const selected = event.target.files?.[0] ?? null;
               setFile(selected);
@@ -116,8 +125,12 @@ export default function HomePage() {
           />
           <button
             type="submit"
-            disabled={streaming || !file}>
-            {streaming ? "Streaming..." : "Start Stream"}
+            disabled={streaming || starting || !file}>
+            {starting
+              ? "Starting..."
+              : streaming
+                ? "Streaming..."
+                : "Start Stream"}
           </button>
           {streaming && (
             <button
@@ -167,46 +180,10 @@ export default function HomePage() {
               </div>
 
               <div className="panel">
-                <h3>Detections This Frame</h3>
+                <h3>Salamanders Currently Being Tracked</h3>
                 <p style={{ fontSize: "20px", fontWeight: "bold" }}>
                   {latestDetectionCount}
                 </p>
-              </div>
-
-              <div className="panel">
-                <h3>FPS</h3>
-                <p style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {metrics.fps.toFixed(1)}
-                </p>
-              </div>
-
-              <div className="panel">
-                <h3>Status</h3>
-                <p style={{ fontSize: "16px" }}>
-                  {metrics.is_streaming ? "🔴 Live" : "✅ Complete"}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {trackedSalamanders.length > 0 && (
-            <div className="panel section-top-gap">
-              <h3>Tracked Salamanders</h3>
-              <div style={{ display: "grid", gap: "12px" }}>
-                {trackedSalamanders.map(([trackId, timeOnScreen]) => (
-                  <div
-                    key={trackId}
-                    style={{
-                      padding: "12px",
-                      backgroundColor: "#f5f5f5",
-                      borderRadius: "4px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                    }}>
-                    <span>Track ID: {trackId}</span>
-                    <span className="muted">{timeOnScreen.toFixed(2)}s</span>
-                  </div>
-                ))}
               </div>
             </div>
           )}

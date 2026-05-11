@@ -99,7 +99,7 @@ class VideoStreamer:
                     )
 
                 result = results[0]
-                annotated = result.plot()
+                annotated = result.plot(labels=False, conf=False)
 
                 # Collect metrics
                 box_count = int(len(result.boxes))

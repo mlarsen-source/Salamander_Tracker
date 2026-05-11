@@ -156,7 +156,7 @@ def stream_video_start() -> tuple:
             imgsz=int(request.form.get("imgsz", 640)),
             track=True,
         )
-        logger.info("Streamer created successfully")
+        logger.info(f"Streamer created and set globally. current_streamer={current_streamer}")
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
         logger.error(f"Failed to create streamer: {exc}", exc_info=True)
         return jsonify({"error": str(exc)}), 400
@@ -199,11 +199,19 @@ def stream_metrics() -> tuple:
     """Get current streaming metrics."""
     global current_streamer
 
+    logger.info(f"Metrics request. current_streamer={current_streamer}")
+    
     if current_streamer is None:
+        logger.warning("Metrics requested but no stream in progress")
         return jsonify({"error": "No stream in progress"}), 400
 
-    metrics = current_streamer.get_metrics()
-    return jsonify(metrics), 200
+    try:
+        metrics = current_streamer.get_metrics()
+        logger.debug(f"Returned metrics: frame_count={metrics.get('frame_count')}")
+        return jsonify(metrics), 200
+    except Exception as exc:
+        logger.error(f"Failed to get metrics: {exc}", exc_info=True)
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.post("/api/stream-stop")

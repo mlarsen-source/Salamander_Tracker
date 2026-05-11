@@ -89,7 +89,7 @@ def infer_video(
             for track_id in ids:
                 time_on_screen_by_track_id[track_id] = time_on_screen_by_track_id.get(track_id, 0.0) + (1.0 / fps)
 
-        annotated = result.plot()
+        annotated = result.plot(labels=False, conf=False)
         writer.write(annotated)
         frame_count += 1
 
