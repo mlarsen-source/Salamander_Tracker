@@ -10,6 +10,7 @@ def main() -> None:
     parser.add_argument("--output-dir", default="data/frames/raw")
     parser.add_argument("--every-n", type=int, default=None)
     parser.add_argument("--target-frames", type=int, default=150)
+    parser.add_argument("--start-frame", type=int, default=0)
     parser.add_argument("--prefix", default="frame")
     args = parser.parse_args()
 
@@ -37,7 +38,10 @@ def main() -> None:
         else:
             every_n = 15
 
-    frame_index = 0
+    if args.start_frame > 0:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, args.start_frame)
+
+    frame_index = args.start_frame
     saved = 0
 
     while True:
@@ -45,7 +49,7 @@ def main() -> None:
         if not ok:
             break
 
-        if frame_index % every_n == 0:
+        if (frame_index - args.start_frame) % every_n == 0:
             out_path = output_dir / f"{args.prefix}_{frame_index:06d}.jpg"
             cv2.imwrite(str(out_path), frame)
             saved += 1

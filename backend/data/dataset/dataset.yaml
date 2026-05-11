@@ -1,0 +1,6 @@
+path: C:\Users\mlars\Documents\SPRING_26\SDEV_378\projects\Salamander_Tracker\backend\data\dataset
+train: images/train
+val: images/val
+
+names:
+  0: Salamander
