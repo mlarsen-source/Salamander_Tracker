@@ -1,8 +1,18 @@
 import argparse
+import logging
+import sys
 from pathlib import Path
 
 import cv2
+import torch
 from ultralytics import YOLO
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger(__name__)
 
 
 def infer_video(
@@ -13,6 +23,10 @@ def infer_video(
     imgsz: int = 640,
     track: bool = False,
 ) -> dict:
+    logger.info(f"Starting inference: weights={weights_path}, video={video_path}, output={output_path}")
+    logger.info(f"CUDA available: {torch.cuda.is_available()}")
+    logger.info(f"Device: {'GPU' if torch.cuda.is_available() else 'CPU'}")
+    
     if not weights_path.exists():
         raise FileNotFoundError(f"Weights not found: {weights_path}")
     if not video_path.exists():
@@ -20,8 +34,11 @@ def infer_video(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    logger.info("Loading YOLO model...")
     model = YOLO(str(weights_path))
+    logger.info(f"Model loaded. Task: {model.task}")
 
+    logger.info(f"Opening video: {video_path}")
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {video_path}")
@@ -29,18 +46,28 @@ def infer_video(
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    logger.info(f"Video info: {width}x{height}, {fps} fps, ~{total_frames} frames")
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     writer = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+    if not writer.isOpened():
+        logger.warning("VideoWriter failed to open, may have codec issues")
 
     frame_count = 0
     detection_count_over_time = []
     time_on_screen_by_track_id: dict[str, float] = {}
 
+    logger.info("Starting frame processing loop...")
     while True:
         ok, frame = cap.read()
         if not ok:
+            logger.info("End of video reached")
             break
+
+        if frame_count % 30 == 0:
+            logger.info(f"Processing frame {frame_count}/{total_frames}")
 
         if track:
             results = model.track(frame, conf=conf, imgsz=imgsz, persist=True, verbose=False)
@@ -66,8 +93,10 @@ def infer_video(
         writer.write(annotated)
         frame_count += 1
 
+    logger.info(f"Frame processing complete. Total frames: {frame_count}")
     cap.release()
     writer.release()
+    logger.info(f"Output video saved to: {output_path}")
 
     return {
         "frame_count": frame_count,
