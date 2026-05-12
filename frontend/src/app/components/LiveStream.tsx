@@ -16,6 +16,7 @@ export function LiveStream({ streamUrl }: LiveStreamProps) {
   return (
     <div className={styles.streamFrame}>
       <img
+        key={streamUrl}
         src={streamUrl}
         alt="Live salamander detection stream"
         className={styles.streamImage}

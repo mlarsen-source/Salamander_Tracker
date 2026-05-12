@@ -107,6 +107,17 @@ def error_response(message: str, status_code: int) -> tuple:
     return jsonify({"error": message}), status_code
 
 
+def replace_active_streamer(next_streamer: VideoStreamer) -> None:
+    """Stop the previous live stream and make `next_streamer` active."""
+    global active_streamer
+
+    if active_streamer is not None:
+        active_streamer.stop()
+        logger.info("Stopped previous live stream before starting replacement")
+
+    active_streamer = next_streamer
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -186,7 +197,7 @@ def start_live_stream() -> tuple:
     confidence_threshold, image_size = get_inference_options()
 
     try:
-        active_streamer = VideoStreamer(
+        next_streamer = VideoStreamer(
             weights_path=weights_path,
             video_path=input_video_path,
             conf=confidence_threshold,
@@ -200,12 +211,14 @@ def start_live_stream() -> tuple:
         logger.exception("Unexpected error creating streamer")
         return error_response(f"Unexpected error: {exc}", 500)
 
+    replace_active_streamer(next_streamer)
+
     logger.info("Live stream ready (run_id=%s)", run_id)
     return (
         jsonify(
             {
                 "run_id": run_id,
-                "stream_url": absolute_url_for("/api/video-stream"),
+                "stream_url": absolute_url_for(f"/api/video-stream?run_id={run_id}"),
                 "metrics_url": absolute_url_for("/api/stream-metrics"),
             }
         ),
