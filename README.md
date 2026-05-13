@@ -40,15 +40,15 @@ Salamander_Tracker/
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Browser (Next.js Frontend)                   │
 │                                                                     │
-│  ┌─────────────┐   ┌─────────────────┐   ┌──────────────────────┐  │
-│  │ UploadForm  │   │   LiveStream    │   │   MetricsPanel       │  │
-│  │             │   │                 │   │                      │  │
-│  │ Pick a video│   │ Renders the     │   │ Displays detection   │  │
-│  │ file and    │   │ live MJPEG feed │   │ counts over time,    │  │
-│  │ start / stop│   │ with scan-line  │   │ time on screen per   │  │
-│  │ the stream  │   │ overlay         │   │ salamander, and live │  │
-│  │             │   │                 │   │ coordinate readouts  │  │
-│  └──────┬──────┘   └────────┬────────┘   └──────────┬───────────┘  │
+│  ┌─────────────┐   ┌─────────────────┐   ┌──────────────────────┐   │
+│  │ UploadForm  │   │   LiveStream    │   │   MetricsPanel       │   │
+│  │             │   │                 │   │                      │   │
+│  │ Pick a video│   │ Renders the     │   │ Displays detection   │   │
+│  │ file and    │   │ live MJPEG feed │   │ counts over time,    │   │
+│  │ start / stop│   │ with scan-line  │   │ time on screen per   │   │
+│  │ the stream  │   │ overlay         │   │ salamander, and live │   │
+│  │             │   │                 │   │ coordinate readouts  │   │
+│  └──────┬──────┘   └────────┬────────┘   └──────────┬───────────┘   │
 │         └────────────────────┴────────────────────────┘             │
 │                        api.ts — typed fetch helpers                 │
 │                        useStreamMetrics — polls every 500 ms        │
@@ -59,19 +59,19 @@ Salamander_Tracker/
 │                        Python Flask Backend                         │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  app.py  —  API routes, file handling, CORS                 │   │
+│  │  app.py  —  API routes, file handling, CORS                  │   │
 │  └───────────────────────┬──────────────────────────────────────┘   │
 │                          │                                          │
 │          ┌───────────────┴──────────────┐                           │
 │          ▼                              ▼                           │
-│  ┌────────────────────┐     ┌───────────────────────┐              │
-│  │  stream_video.py   │     │  detection_metrics.py │              │
-│  │                    │────▶│                       │              │
-│  │  Reads video frames│     │  Calculates per-frame │              │
-│  │  runs YOLO, encodes│     │  counts, track dura-  │              │
-│  │  MJPEG, tracks IDs │     │  tions, and bounding  │              │
-│  │                    │     │  box coordinates      │              │
-│  └─────────┬──────────┘     └───────────────────────┘              │
+│  ┌────────────────────┐      ┌───────────────────────┐              │
+│  │  stream_video.py   │      │  detection_metrics.py │              │
+│  │                    │ ─ ▶ │                       │              │
+│  │  Reads video frames│      │  Calculates per-frame │              │
+│  │  runs YOLO, encodes│      │  counts, track dura-  │              │
+│  │  MJPEG, tracks IDs │      │  tions, and bounding  │              │
+│  │                    │      │  box coordinates      │              │
+│  └─────────┬──────────┘      └───────────────────────┘              │
 │            │                                                        │
 │            ▼                                                        │
 │  ┌─────────────────────┐                                            │
