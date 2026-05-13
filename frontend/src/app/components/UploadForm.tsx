@@ -48,27 +48,35 @@ export function UploadForm({
       <form
         onSubmit={handleSubmit}
         className={styles.uploadForm}>
-        <input
-          type="file"
-          accept="video/*"
-          disabled={isBusy}
-          onChange={(event) => {
-            setSelectedVideoFile(event.target.files?.[0] ?? null);
-          }}
-        />
-        <button
-          type="submit"
-          disabled={isBusy || !selectedVideoFile}>
-          {submitButtonLabel}
-        </button>
-        {isStreaming && (
+        <label className={styles.filePicker}>
+          <span className={styles.filePickerLabel}>Source Footage</span>
+          <input
+            type="file"
+            accept="video/*"
+            disabled={isBusy}
+            onChange={(event) => {
+              setSelectedVideoFile(event.target.files?.[0] ?? null);
+            }}
+          />
+        </label>
+        <div className={styles.fileName} title={selectedVideoFile?.name}>
+          {selectedVideoFile?.name ?? "No video selected"}
+        </div>
+        <div className={styles.actions}>
+          <button
+            type="submit"
+            disabled={isBusy || !selectedVideoFile}>
+            {submitButtonLabel}
+          </button>
+          {isStreaming && (
           <button
             type="button"
             className={styles.stopButton}
             onClick={() => void onStop()}>
             Stop
           </button>
-        )}
+          )}
+        </div>
       </form>
       {errorMessage && <p className={styles.errorText}>{errorMessage}</p>}
     </>

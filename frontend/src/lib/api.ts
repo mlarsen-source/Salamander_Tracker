@@ -21,6 +21,15 @@ export type FrameDetectionRecord = {
   count: number;
 };
 
+export type CurrentPositionRecord = {
+  track_id: string | null;
+  x_center: number;
+  y_center: number;
+  width: number;
+  height: number;
+  confidence?: number;
+};
+
 export type StreamStartResponse = {
   run_id: string;
   stream_url: string;
@@ -32,6 +41,7 @@ export type StreamMetrics = {
   fps: number;
   is_streaming: boolean;
   detection_count_over_time: FrameDetectionRecord[];
+  current_positions: CurrentPositionRecord[];
   time_on_screen_by_track_id: Record<string, number>;
 };
 

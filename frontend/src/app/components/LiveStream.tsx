@@ -15,6 +15,7 @@ type LiveStreamProps = {
 export function LiveStream({ streamUrl }: LiveStreamProps) {
   return (
     <div className={styles.streamFrame}>
+      <div className={styles.scanLine} aria-hidden="true" />
       <img
         key={streamUrl}
         src={streamUrl}

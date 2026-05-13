@@ -16,6 +16,7 @@ import { useState } from "react";
 import { LiveStream } from "./components/LiveStream";
 import { MetricsPanel } from "./components/MetricsPanel";
 import { UploadForm } from "./components/UploadForm";
+import styles from "./page.module.css";
 import { startStream, stopStream } from "@/lib/api";
 import { useStreamMetrics } from "@/lib/useStreamMetrics";
 
@@ -24,7 +25,11 @@ export default function HomePage() {
   const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { metrics, isStreaming, reset: resetMetrics } = useStreamMetrics(streamUrl);
+  const {
+    metrics,
+    isStreaming,
+    reset: resetMetrics,
+  } = useStreamMetrics(streamUrl);
 
   /** Upload the file, then surface the MJPEG URL so the stream + polling start. */
   const handleStartStream = async (videoFile: File) => {
@@ -38,7 +43,7 @@ export default function HomePage() {
       setStreamUrl(startResponse.stream_url);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Failed to start stream.",
+        error instanceof Error ? error.message : "Failed to start stream."
       );
     } finally {
       setIsStarting(false);
@@ -58,29 +63,87 @@ export default function HomePage() {
   };
 
   return (
-    <main>
-      <h1>Salamander Tracker</h1>
-      <p className="muted">
-        Upload a video to run YOLO detection and tracking live.
-      </p>
+    <main className={styles.shell}>
+      <header className={styles.pageHeader}>
+        <h2 className={styles.title}>Salamander Tracker</h2>
+      </header>
 
-      <section className="panel">
-        <UploadForm
-          isStarting={isStarting}
-          isStreaming={isStreaming}
-          errorMessage={errorMessage}
-          onStart={handleStartStream}
-          onStop={handleStopStream}
-        />
-      </section>
+      <div className={styles.workspace}>
+        <aside className={styles.sidebar}>
+          <div
+            className={styles.specimenStrip}
+            aria-label="Study metadata">
+            <div className={styles.specimenStat}>
+              <span className={styles.specimenLabel}>Model</span>
+              <span className={styles.specimenValue}>YOLO tracking</span>
+            </div>
+            <div className={styles.specimenStat}>
+              <span className={styles.specimenLabel}>Mode</span>
+              <span className={styles.specimenValue}>Live inference</span>
+            </div>
+          </div>
 
-      {streamUrl && (
-        <section className="panel section-top-gap">
-          <h2>Live Detection Stream</h2>
-          <LiveStream streamUrl={streamUrl} />
-          {metrics && <MetricsPanel metrics={metrics} />}
+          <section
+            className={styles.controlPanel}
+            aria-labelledby="controls-title">
+            <p className={styles.panelKicker}>Acquisition</p>
+            <h2
+              className={styles.panelTitle}
+              id="controls-title">
+              Video Intake
+            </h2>
+            <UploadForm
+              isStarting={isStarting}
+              isStreaming={isStreaming}
+              errorMessage={errorMessage}
+              onStart={handleStartStream}
+              onStop={handleStopStream}
+            />
+          </section>
+        </aside>
+
+        <section
+          className={styles.streamPanel}
+          aria-labelledby="stream-title">
+          <div className={styles.panelHeader}>
+            <div>
+              <p className={styles.panelKicker}>Observation Feed</p>
+              <h2
+                className={styles.panelTitle}
+                id="stream-title">
+                Live Detection Stream
+              </h2>
+            </div>
+            <div
+              className={styles.statusPill}
+              data-active={isStreaming}>
+              <span
+                className={styles.statusDot}
+                aria-hidden="true"
+              />
+              {isStreaming ? "Streaming" : isStarting ? "Starting" : "Standby"}
+            </div>
+          </div>
+
+          <div className={styles.streamBody}>
+            {streamUrl ? (
+              <>
+                <LiveStream streamUrl={streamUrl} />
+                {metrics && <MetricsPanel metrics={metrics} />}
+              </>
+            ) : (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyStateInner}>
+                  <p>
+                    Select a video file and start the stream to view annotated
+                    frames, detection counts, and tracking telemetry.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
-      )}
+      </div>
     </main>
   );
 }
