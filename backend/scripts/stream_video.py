@@ -17,6 +17,7 @@ from ultralytics import YOLO
 
 from scripts.detection_metrics import (
     add_frame_to_track_durations,
+    build_current_position_records,
     build_frame_detection_record,
     round_track_durations,
 )
@@ -58,6 +59,7 @@ class VideoStreamer:
         self._metrics_lock = Lock()
         self._detection_count_over_time: list[dict[str, Any]] = []
         self._duration_by_track_id: dict[str, float] = {}
+        self._current_positions: list[dict[str, Any]] = []
         self._frames_processed = 0
         self._frames_per_second = DEFAULT_FPS
         self._is_streaming = False
@@ -88,6 +90,7 @@ class VideoStreamer:
                 "fps": self._frames_per_second,
                 "is_streaming": self._is_streaming,
                 "detection_count_over_time": list(self._detection_count_over_time),
+                "current_positions": list(self._current_positions),
                 "time_on_screen_by_track_id": round_track_durations(
                     self._duration_by_track_id
                 ),
@@ -168,6 +171,7 @@ class VideoStreamer:
         """Append this frame's detection count and update tracking durations."""
         detection_count = int(len(yolo_result.boxes))
         with self._metrics_lock:
+            self._current_positions = build_current_position_records(yolo_result)
             self._detection_count_over_time.append(
                 build_frame_detection_record(
                     self._frames_processed,
