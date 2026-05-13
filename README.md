@@ -34,6 +34,56 @@ Salamander_Tracker/
 │   └── processed/              # Processed videos (optional)
 ```
 
+## Component Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Browser (Next.js Frontend)                   │
+│                                                                     │
+│  ┌─────────────┐   ┌─────────────────┐   ┌──────────────────────┐  │
+│  │ UploadForm  │   │   LiveStream    │   │   MetricsPanel       │  │
+│  │             │   │                 │   │                      │  │
+│  │ Pick a video│   │ Renders the     │   │ Displays detection   │  │
+│  │ file and    │   │ live MJPEG feed │   │ counts over time,    │  │
+│  │ start / stop│   │ with scan-line  │   │ time on screen per   │  │
+│  │ the stream  │   │ overlay         │   │ salamander, and live │  │
+│  │             │   │                 │   │ coordinate readouts  │  │
+│  └──────┬──────┘   └────────┬────────┘   └──────────┬───────────┘  │
+│         └────────────────────┴────────────────────────┘             │
+│                        api.ts — typed fetch helpers                 │
+│                        useStreamMetrics — polls every 500 ms        │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │  HTTP / MJPEG
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Python Flask Backend                         │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  app.py  —  API routes, file handling, CORS                 │   │
+│  └───────────────────────┬──────────────────────────────────────┘   │
+│                          │                                          │
+│          ┌───────────────┴──────────────┐                           │
+│          ▼                              ▼                           │
+│  ┌────────────────────┐     ┌───────────────────────┐              │
+│  │  stream_video.py   │     │  detection_metrics.py │              │
+│  │                    │────▶│                       │              │
+│  │  Reads video frames│     │  Calculates per-frame │              │
+│  │  runs YOLO, encodes│     │  counts, track dura-  │              │
+│  │  MJPEG, tracks IDs │     │  tions, and bounding  │              │
+│  │                    │     │  box coordinates      │              │
+│  └─────────┬──────────┘     └───────────────────────┘              │
+│            │                                                        │
+│            ▼                                                        │
+│  ┌─────────────────────┐                                            │
+│  │   models/best.pt    │                                            │
+│  │                     │                                            │
+│  │  YOLOv11 Nano model │                                            │
+│  │  trained on 145     │                                            │
+│  │  salamander frames  │                                            │
+│  └─────────────────────┘                                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
 ## Prerequisites
 
 - Python 3.12+
@@ -127,11 +177,41 @@ Total duration each tracked salamander appears:
 }
 ```
 
-## Model Training Workflow
+## Dataset & Training Pipeline
 
-If you want to retrain the model with new data:
+### Dataset Overview
 
-### 1. Extract Frames from Video
+The model was trained on **145 labeled frames** extracted from camera-trap salamander footage. The dataset captures salamanders in realistic field conditions with varying lighting, backgrounds, and body positions. This ensures the model generalizes well to real-world detection scenarios.
+
+**Dataset Split:**
+
+- **Training set:** 123 frames (~85%)
+- **Validation set:** 22 frames (~15%)
+
+**Data Characteristics:**
+
+- Single-class detection (Salamander)
+- Annotated with bounding boxes using Label Studio
+- Resolution: 640×640 (standard for YOLOv11)
+- Covers varied conditions: different times of day, substrate types, and lighting angles
+
+**Training Configuration:**
+
+- Model: YOLOv11 Nano (`yolo11n.pt`) — compact for real-time inference
+- Epochs: 50 (early stopping at convergence)
+- Image size: 640×640
+- Batch size: 8
+- Optimizer: SGD with momentum
+- Device: Automatic (GPU if available, CPU fallback)
+
+**Training Results:**
+The nano model achieves good performance on validation data while maintaining fast inference (~0.4 seconds/frame on CPU), making it ideal for real-time streaming without requiring expensive GPU hardware.
+
+### Retrain the Model with New Data
+
+If you want to train with additional labeled frames:
+
+#### 1. Extract Frames from Video
 
 ```bash
 python backend/scripts/extract_frames.py \
@@ -140,39 +220,87 @@ python backend/scripts/extract_frames.py \
   --output-dir backend/data/frames/raw
 ```
 
-### 2. Label Frames in Label Studio
+#### 2. Label Frames in Label Studio
 
 1. Create a Label Studio project
 2. Import frames from `backend/data/frames/raw`
-3. Label salamanders with bounding boxes
-4. Export as "YOLO" format
+3. Label salamanders with bounding boxes (single class: "Salamander")
+4. Export as "YOLO" format to `backend/data/labelstudio/`
 
-### 3. Prepare Dataset
+#### 3. Prepare Dataset
 
 ```bash
 python backend/scripts/prepare_dataset.py \
-  --export-dir path/to/label-studio-export
+  --export-dir backend/data/labelstudio
 ```
 
-Creates `backend/data/dataset/` with train/val split.
+Creates `backend/data/dataset/` with train/val split and YOLO annotations.
 
-### 4. Train Model
+#### 4. Train Model
 
 ```bash
 python backend/scripts/train.py \
   --data backend/data/dataset/dataset.yaml \
   --model yolo11n.pt \
   --epochs 50 \
-  --imgsz 640
+  --imgsz 640 \
+  --batch 8
 ```
 
-Weights saved to `backend/models/best.pt`
+Training outputs saved to `runs/detect/salamander_run*/`
 
-### 5. Copy Weights to App
+#### 5. Copy Best Weights to App
 
 ```bash
 cp runs/detect/salamander_run1/weights/best.pt backend/models/best.pt
 ```
+
+## Color Masking vs YOLO: When to Use Which
+
+### Color Masking
+
+**How it works:** Select a target color range, threshold pixels in that range, compute the centroid, and log coordinates.
+
+**Strengths:**
+
+- ✅ Extremely fast (~1–2 ms/frame; orders of magnitude faster than ML)
+- ✅ No training required; works immediately on new videos
+- ✅ Requires minimal compute; runs on any device
+- ✅ Deterministic and interpretable
+
+**Limitations:**
+
+- ❌ Fails with textured or non-uniform backgrounds
+- ❌ Breaks when lighting changes (mid-recording, shadows, sun angle shift)
+- ❌ Cannot distinguish multiple salamanders reliably if they overlap or have similar colors
+- ❌ No confidence scores; false positives (matching background pixels)
+- ❌ Requires manual color calibration per video
+
+### YOLO Object Detection
+
+**How it works:** Neural network trained to detect salamanders via learned visual features. Returns bounding boxes, confidence scores, and optional tracking IDs across frames.
+
+**Strengths:**
+
+- ✅ Robust to lighting changes, backgrounds, and textures
+- ✅ Handles multiple salamanders, overlaps, and occlusions
+- ✅ Generalizes to new videos without recalibration
+- ✅ Provides confidence scores for each detection
+- ✅ Integrated tracking assigns persistent IDs across frames
+- ✅ Computes derived metrics (time on screen, path trails, heatmaps)
+
+**Limitations:**
+
+- ❌ Slower than color masking (~0.4 sec/frame on CPU, ~50–100 ms on GPU)
+- ❌ Requires labeled training data (145 frames for this model)
+- ❌ Model quality depends on training data diversity
+- ❌ Initial setup overhead; needs environment and GPU optional
+
+### Conclusion
+
+**Use color masking** when conditions are tightly controlled and speed is paramount (e.g., laboratory setup with constant lighting and plain backgrounds).
+
+**Use YOLO** for real-world ecological fieldwork where lighting, backgrounds, and salamander density vary. The ~0.4 sec/frame cost is negligible for analysis of 30-minute recordings and far outweighs manual recalibration of color thresholds per video.
 
 ## Environment Variables
 
