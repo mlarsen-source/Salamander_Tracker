@@ -1,0 +1,233 @@
+.shell {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.pageHeader {
+  max-width: 760px;
+  margin: 0 auto 28px;
+  text-align: center;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 24px;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0 auto;
+  font-family: var(--font-display);
+  font-size: clamp(2.7rem, 8vw, 5.2rem);
+  line-height: 0.95;
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 40px rgba(0, 217, 255, 0.4);
+}
+
+.subtitle {
+  max-width: 31rem;
+  margin: 16px auto 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.specimenStrip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.specimenStat {
+  border: 2px solid var(--border-strong);
+  border-radius: 2px;
+  padding: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(20, 24, 41, 0.8),
+    rgba(26, 31, 58, 0.6)
+  );
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 0 10px rgba(0, 217, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.specimenLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--neon-cyan);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.specimenValue {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.controlPanel,
+.streamPanel {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.controlPanel {
+  padding: 20px;
+}
+
+.streamPanel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(90deg, rgba(20, 83, 45, 0.08), transparent 42%),
+    rgba(255, 255, 255, 0.72);
+}
+
+.panelKicker {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #f7fbf7;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.statusPill[data-active="true"] {
+  border-color: rgba(20, 83, 45, 0.28);
+  color: var(--accent-strong);
+}
+
+.statusPill[data-active="true"] .statusDot {
+  background: var(--signal);
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.16);
+}
+
+.streamBody {
+  padding: 18px;
+}
+
+.emptyState {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(18, 55, 43, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 55, 43, 0.06) 1px, transparent 1px), #f8fbf7;
+  background-size: 32px 32px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.emptyStateInner {
+  max-width: 340px;
+  padding: 24px;
+}
+
+.emptyLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent-strong);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.emptyState p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    padding: 22px;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .specimenStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .panelHeader {
+    flex-direction: column;
+  }
+
+  .statusPill {
+    width: 100%;
+    justify-content: center;
+  }
+}

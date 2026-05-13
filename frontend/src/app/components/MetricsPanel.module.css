@@ -1,21 +1,279 @@
+.metricsPanel {
+  margin-top: 18px;
+}
+
 .metricsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metricTile,
+.readoutPanel {
+  border: 2px solid var(--border-strong);
+  border-radius: 2px;
+  background: linear-gradient(
+    135deg,
+    rgba(26, 31, 58, 0.8),
+    rgba(20, 24, 41, 0.6)
+  );
+  box-shadow:
+    var(--shadow-panel),
+    inset 0 0 15px rgba(0, 217, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.metricTile {
+  padding: 16px;
+}
+
+.metricTile h3,
+.readoutHeader h3 {
+  margin: 0 0 8px;
+  color: var(--neon-cyan);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .metricValue {
-  font-size: 20px;
-  font-weight: bold;
   margin: 0;
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
 }
 
-.timelinePanel {
-  margin-top: 1rem;
+.metricUnit {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
 }
 
-.timelineSummary {
-  color: var(--muted);
-  font-size: 0.95rem;
+.readoutGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.readoutStackedContainer {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 12px;
+}
+
+.readoutPanel {
+  min-width: 0;
+  padding: 16px;
+}
+
+.readoutHeader {
+  margin-bottom: 14px;
+}
+
+.readoutHeader p {
   margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.countTable {
+  display: grid;
+  gap: 8px;
+  border: 2px solid var(--border-strong);
+  border-radius: 2px;
+  padding: 10px;
+  background: linear-gradient(
+    135deg,
+    rgba(10, 14, 39, 0.5),
+    rgba(20, 24, 41, 0.3)
+  );
+}
+
+.countTableHeader,
+.countTableRow {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.75fr) minmax(150px, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.countTableHeader {
+  padding: 0 8px 4px;
+  color: var(--neon-cyan);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.countTableRow {
+  border: 2px solid var(--border);
+  border-radius: 2px;
+  padding: 9px 10px;
+  background: rgba(20, 24, 41, 0.5);
+  color: var(--text);
+  transition: all 150ms ease;
+}
+
+.countTableRow[data-current="true"] {
+  border-color: var(--neon-cyan);
+  background: rgba(0, 217, 255, 0.1);
+  box-shadow: inset 0 0 10px rgba(0, 217, 255, 0.1);
+}
+
+.countTableRow span,
+.countTableRow strong {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+}
+
+.countTableRow strong {
+  color: var(--neon-cyan);
+  text-align: right;
+}
+
+.trackList {
+  display: grid;
+  gap: 12px;
+}
+
+.trackRow {
+  display: grid;
+  gap: 7px;
+}
+
+.trackMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.trackBarRail {
+  height: 10px;
+  overflow: hidden;
+  border: 2px solid var(--border-strong);
+  border-radius: 999px;
+  background: rgba(20, 24, 41, 0.5);
+}
+
+.trackBar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+  box-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.emptyReadout,
+.emptyTracks {
+  display: grid;
+  width: 100%;
+  min-height: 72px;
+  place-items: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+  border: 2px dashed var(--border-strong);
+  border-radius: 2px;
+  background: rgba(20, 24, 41, 0.3);
+}
+
+.positionList {
+  display: grid;
+  gap: 10px;
+}
+
+.positionRow {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: 2px;
+  background: rgba(20, 24, 41, 0.5);
+  transition: all 150ms ease;
+}
+
+.positionRow:hover {
+  border-color: var(--neon-cyan);
+  box-shadow: inset 0 0 10px rgba(0, 217, 255, 0.1);
+}
+
+.positionMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.confidence {
+  color: var(--neon-lime);
+  font-weight: 800;
+}
+
+.positionCoords {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.coordRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.coordRow strong {
+  color: var(--neon-cyan);
+  font-weight: 800;
+}
+
+.emptyPositions {
+  display: grid;
+  width: 100%;
+  min-height: 72px;
+  place-items: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+  border: 2px dashed var(--border-strong);
+  border-radius: 2px;
+  background: rgba(20, 24, 41, 0.3);
+}
+
+@media (max-width: 860px) {
+  .readoutGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+  .countTableHeader,
+  .countTableRow {
+    grid-template-columns: 1fr;
+  }
+
+  .countTableRow strong {
+    text-align: left;
+  }
 }
