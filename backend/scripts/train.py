@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from ultralytics import YOLO
 
@@ -11,8 +12,11 @@ def main() -> None:
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--batch", type=int, default=8)
     parser.add_argument("--name", default="salamander_run1")
+    parser.add_argument("--project", default="runs/detect")
     parser.add_argument("--device", default=None)
     args = parser.parse_args()
+
+    project_path = Path(args.project).resolve()
 
     model = YOLO(args.model)
     model.train(
@@ -21,6 +25,7 @@ def main() -> None:
         imgsz=args.imgsz,
         batch=args.batch,
         name=args.name,
+        project=str(project_path),
         device=args.device,
     )
 
