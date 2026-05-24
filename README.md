@@ -1,363 +1,384 @@
 # Salamander Tracker
 
-A real-time web application for detecting and tracking salamanders in video using a custom-trained YOLO model. Upload a video and watch live detection with bounding boxes as the model processes frames.
+A full-stack app for detecting and tracking salamanders in video with a
+custom-trained YOLO11 model. The frontend uploads a video and displays a live
+MJPEG stream from the Flask backend while the backend runs YOLO inference,
+draws bounding boxes, and reports tracking metrics.
 
 ## Features
 
-- 🎥 **Live Streaming** - See detection results in real-time as frames are processed
-- 📊 **Real-time Metrics** - Track detections per frame and individual salamander screen time
-- 🤖 **Custom YOLO Model** - Trained specifically on salamander footage
-- 🌐 **Web Interface** - Clean, responsive UI for easy use
-- 📈 **Tracking** - Individual salamanders tracked across frames
+- Live video inference with YOLO object detection
+- MJPEG stream rendered in the browser
+- Detection count over time
+- Live bounding-box center coordinates
+- Per-track time on screen for detected salamanders
+- Single-class model trained from Label Studio YOLO annotations
 
-## Architecture
+## Project Layout
 
-```
+```text
 Salamander_Tracker/
-├── frontend/                    # Next.js 15 React app
-│   ├── src/app/
-│   │   ├── page.tsx            # Main upload + streaming UI
-│   │   └── globals.css         # Styling
-│   └── src/lib/
-│       └── api.ts              # API client functions
-│
-├── backend/                     # Python Flask app
-│   ├── app.py                  # Main Flask server
-│   ├── models/
-│   │   └── best.pt             # Trained YOLO weights
-│   ├── scripts/
-│   │   ├── stream_video.py     # MJPEG streaming engine
-│   │   ├── infer_video.py      # Frame inference logic
-│   │   ├── train.py            # Model training
-│   │   └── extract_frames.py   # Video → frames
-│   ├── uploads/                # Temporary uploaded videos
-│   └── processed/              # Processed videos (optional)
+  backend/
+    app.py                         Flask API server
+    models/best.pt                 Active model used by the app
+    yolo11n.pt                     Base YOLO11 nano weights
+    requirements.txt
+    scripts/
+      extract_frames.py            Video frame extraction
+      prepare_dataset.py           Label Studio export to YOLO dataset split
+      train.py                     YOLO training entrypoint
+      infer_video.py               Batch video inference
+      stream_video.py              Live MJPEG inference stream
+      detection_metrics.py         Metrics helpers
+    data/
+      frames/raw/                  Raw frames for Label Studio upload
+      images/                      Label Studio YOLO export images
+      labels/                      Label Studio YOLO export labels
+      classes.txt                  Label Studio class names
+      dataset/                     Prepared YOLO train/val dataset
+    runs/detect/                   Training outputs
+
+  frontend/
+    src/app/page.tsx               Main app page
+    src/app/components/            Upload, stream, and metrics components
+    src/lib/api.ts                 Backend API client
+    src/lib/useStreamMetrics.ts    Metrics polling hook
 ```
 
-## Component Overview
+## Current Model
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Browser (Next.js Frontend)                   │
-│                                                                     │
-│  ┌─────────────┐   ┌─────────────────┐   ┌──────────────────────┐   │
-│  │ UploadForm  │   │   LiveStream    │   │   MetricsPanel       │   │
-│  │             │   │                 │   │                      │   │
-│  │ Pick a video│   │ Renders the     │   │ Displays detection   │   │
-│  │ file and    │   │ live MJPEG feed │   │ counts over time,    │   │
-│  │ start / stop│   │ with scan-line  │   │ time on screen per   │   │
-│  │ the stream  │   │ overlay         │   │ salamander, and live │   │
-│  │             │   │                 │   │ coordinate readouts  │   │
-│  └──────┬──────┘   └────────┬────────┘   └──────────┬───────────┘   │
-│         └────────────────────┴────────────────────────┘             │
-│                        api.ts — typed fetch helpers                 │
-│                        useStreamMetrics — polls every 500 ms        │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │  HTTP / MJPEG
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Python Flask Backend                         │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  app.py  —  API routes, file handling, CORS                  │   │
-│  └───────────────────────┬──────────────────────────────────────┘   │
-│                          │                                          │
-│          ┌───────────────┴──────────────┐                           │
-│          ▼                              ▼                           │
-│  ┌────────────────────┐      ┌───────────────────────┐              │
-│  │  stream_video.py   │      │  detection_metrics.py │              │
-│  │                    │ ─ ▶ │                       │              │
-│  │  Reads video frames│      │  Calculates per-frame │              │
-│  │  runs YOLO, encodes│      │  counts, track dura-  │              │
-│  │  MJPEG, tracks IDs │      │  tions, and bounding  │              │
-│  │                    │      │  box coordinates      │              │
-│  └─────────┬──────────┘      └───────────────────────┘              │
-│            │                                                        │
-│            ▼                                                        │
-│  ┌─────────────────────┐                                            │
-│  │   models/best.pt    │                                            │
-│  │                     │                                            │
-│  │  YOLOv11 Nano model │                                            │
-│  │  trained on 145     │                                            │
-│  │  salamander frames  │                                            │
-│  └─────────────────────┘                                            │
-└─────────────────────────────────────────────────────────────────────┘
-```
+The active model at `backend/models/best.pt` was trained from the current
+Label Studio export in `backend/data`. This custom-trained YOLO model file is
+included in the repo at `backend/models/best.pt`, and the Flask app loads it by
+default.
+
+Labeling count:
+
+- 370 frames were reviewed/labeled in Label Studio
+- 299 frames contain at least one salamander bounding box
+- 71 frames are background/negative examples with no salamander box
+
+Dataset summary:
+
+- 370 images
+- 370 label files
+- 329 bounding boxes
+- 71 background/negative images
+- Class: `salamander`
+- Train split: 296 images
+- Validation split: 74 images
+
+Training summary:
+
+- Base model: `yolo11n.pt`
+- Epochs: 50
+- Image size: 640
+- Batch size: 8
+- Device used: CPU
+- Output run: `backend/runs/detect/salamander_run2`
+
+Final validation metrics:
+
+- Precision: 0.958
+- Recall: 0.915
+- mAP50: 0.940
+- mAP50-95: 0.725
+
+Dataset and training pipeline: frames were extracted from salamander videos into
+`backend/data/frames/raw`, imported into Label Studio, labeled with a single
+`salamander` bounding-box class, and exported in YOLO format to
+`backend/data/images`, `backend/data/labels`, and `backend/data/classes.txt`.
+The `scripts/prepare_dataset.py` script rebuilt a YOLO train/validation split
+under `backend/data/dataset` using an 80/20 split. The `scripts/train.py` script
+then fine-tuned `yolo11n.pt` for 50 epochs at 640 px image size and batch size 8,
+writing training artifacts to `backend/runs/detect/salamander_run2`.
+
+## Color Masking vs YOLO
+
+Color masking is best when the scene is controlled: stable lighting, a plain
+background, and a target color that is clearly separated from everything else.
+It is fast, simple, and useful for quick lab-style tracking, but it breaks down
+when shadows, substrate texture, camera exposure, or similar-colored objects
+change the pixel colors. YOLO is the better choice for this salamander tracker
+because the videos contain natural backgrounds, changing lighting, and irregular
+animal poses. Use color masking for simple controlled experiments where speed is
+more important than robustness; use YOLO for field footage, mixed backgrounds,
+multiple animals, partial occlusion, and any workflow where detection quality
+matters more than raw processing speed.
 
 ## Prerequisites
 
 - Python 3.12+
 - Node.js 18+
-- 4GB RAM minimum (8GB recommended)
+- Git Bash, PowerShell, or another terminal
+- 8 GB RAM recommended
 
-## Quick Start
+The examples below use Bash-style commands. On this Windows workspace, the
+virtual environment Python executable is:
 
-### 1. Backend Setup
+```bash
+../.venv/Scripts/python.exe
+```
+
+If you are on macOS or Linux, replace that with `python` or your virtualenv's
+Python path.
+
+## Run the App
+
+Terminal 1, start the backend:
 
 ```bash
 cd backend
-pip install -r requirements.txt
+../.venv/Scripts/python.exe app.py
 ```
 
-### 2. Frontend Setup
+Terminal 2, start the frontend:
 
 ```bash
 cd frontend
 npm install
-```
-
-### 3. Start the Backend Server
-
-```bash
-cd backend
-python app.py
-```
-
-The server runs on `http://127.0.0.1:8000`
-
-### 4. Start the Frontend (in another terminal)
-
-```bash
-cd frontend
 npm run dev
 ```
 
-The app opens at `http://localhost:3000`
+Open:
 
-### 5. Upload and Stream
-
-1. Go to http://localhost:3000
-2. Select a video file
-3. Click **"Start Stream"**
-4. Watch the live detection stream with real-time metrics
-
-## API Endpoints
-
-### Stream Processing
-
-- `POST /api/stream-video` - Start streaming a video
-  - Body: FormData with `video` field
-  - Returns: `{ run_id, stream_url, metrics_url }`
-
-- `GET /api/video-stream` - MJPEG stream of annotated frames
-  - Returns: Continuous MJPEG stream
-
-- `GET /api/stream-metrics` - Current stream metrics
-  - Returns: `{ frame_count, fps, is_streaming, detection_count_over_time, time_on_screen_by_track_id }`
-
-- `POST /api/stream-stop` - Stop the current stream
-  - Returns: `{ ok: true }`
-
-### Health
-
-- `GET /api/health` - Server health check
-  - Returns: `{ ok: true }`
-
-## Metrics Explained
-
-### Detection Count Over Time
-
-Array of detections per frame:
-
-```json
-[
-  { "frame": 0, "timestamp_sec": 0.0, "count": 2 },
-  { "frame": 1, "timestamp_sec": 0.033, "count": 2 }
-]
+```text
+http://localhost:3000
 ```
 
-### Time on Screen by Track ID
+Then select a video file and click `Start Stream`.
 
-Total duration each tracked salamander appears:
-
-```json
-{
-  "1": 5.23, // Track ID 1: 5.23 seconds
-  "2": 3.45 // Track ID 2: 3.45 seconds
-}
-```
-
-## Dataset & Training Pipeline
-
-### Dataset Overview
-
-The model was trained on **145 labeled frames** extracted from camera-trap salamander footage. The dataset captures salamanders in realistic field conditions with varying lighting, backgrounds, and body positions. This ensures the model generalizes well to real-world detection scenarios.
-
-**Dataset Split:**
-
-- **Training set:** 123 frames (~85%)
-- **Validation set:** 22 frames (~15%)
-
-**Data Characteristics:**
-
-- Single-class detection (Salamander)
-- Annotated with bounding boxes using Label Studio
-- Resolution: 640×640 (standard for YOLOv11)
-- Covers varied conditions: different times of day, substrate types, and lighting angles
-
-**Training Configuration:**
-
-- Model: YOLOv11 Nano (`yolo11n.pt`) — compact for real-time inference
-- Epochs: 50 (early stopping at convergence)
-- Image size: 640×640
-- Batch size: 8
-- Optimizer: SGD with momentum
-- Device: Automatic (GPU if available, CPU fallback)
-
-**Training Results:**
-The nano model achieves good performance on validation data while maintaining fast inference (~0.4 seconds/frame on CPU), making it ideal for real-time streaming without requiring expensive GPU hardware.
-
-### Retrain the Model with New Data
-
-If you want to train with additional labeled frames:
-
-#### 1. Extract Frames from Video
-
-```bash
-python backend/scripts/extract_frames.py \
-  --video path/to/video.mp4 \
-  --target-frames 100 \
-  --output-dir backend/data/frames/raw
-```
-
-#### 2. Label Frames in Label Studio
-
-1. Create a Label Studio project
-2. Import frames from `backend/data/frames/raw`
-3. Label salamanders with bounding boxes (single class: "Salamander")
-4. Export as "YOLO" format to `backend/data/labelstudio/`
-
-#### 3. Prepare Dataset
-
-```bash
-python backend/scripts/prepare_dataset.py \
-  --export-dir backend/data/labelstudio
-```
-
-Creates `backend/data/dataset/` with train/val split and YOLO annotations.
-
-#### 4. Train Model
-
-```bash
-python backend/scripts/train.py \
-  --data backend/data/dataset/dataset.yaml \
-  --model yolo11n.pt \
-  --epochs 50 \
-  --imgsz 640 \
-  --batch 8
-```
-
-Training outputs saved to `runs/detect/salamander_run*/`
-
-#### 5. Copy Best Weights to App
-
-```bash
-cp runs/detect/salamander_run1/weights/best.pt backend/models/best.pt
-```
-
-## Color Masking vs YOLO: When to Use Which
-
-### Color Masking
-
-**How it works:** Select a target color range, threshold pixels in that range, compute the centroid, and log coordinates.
-
-**Strengths:**
-
-- ✅ Extremely fast (~1–2 ms/frame; orders of magnitude faster than ML)
-- ✅ No training required; works immediately on new videos
-- ✅ Requires minimal compute; runs on any device
-- ✅ Deterministic and interpretable
-
-**Limitations:**
-
-- ❌ Fails with textured or non-uniform backgrounds
-- ❌ Breaks when lighting changes (mid-recording, shadows, sun angle shift)
-- ❌ Cannot distinguish multiple salamanders reliably if they overlap or have similar colors
-- ❌ No confidence scores; false positives (matching background pixels)
-- ❌ Requires manual color calibration per video
-
-### YOLO Object Detection
-
-**How it works:** Neural network trained to detect salamanders via learned visual features. Returns bounding boxes, confidence scores, and optional tracking IDs across frames.
-
-**Strengths:**
-
-- ✅ Robust to lighting changes, backgrounds, and textures
-- ✅ Handles multiple salamanders, overlaps, and occlusions
-- ✅ Generalizes to new videos without recalibration
-- ✅ Provides confidence scores for each detection
-- ✅ Integrated tracking assigns persistent IDs across frames
-- ✅ Computes derived metrics (time on screen, path trails, heatmaps)
-
-**Limitations:**
-
-- ❌ Slower than color masking (~0.4 sec/frame on CPU, ~50–100 ms on GPU)
-- ❌ Requires labeled training data (145 frames for this model)
-- ❌ Model quality depends on training data diversity
-- ❌ Initial setup overhead; needs environment and GPU optional
-
-### Conclusion
-
-**Use color masking** when conditions are tightly controlled and speed is paramount (e.g., laboratory setup with constant lighting and plain backgrounds).
-
-**Use YOLO** for real-world ecological fieldwork where lighting, backgrounds, and salamander density vary. The ~0.4 sec/frame cost is negligible for analysis of 30-minute recordings and far outweighs manual recalibration of color thresholds per video.
-
-## Environment Variables
-
-Optional configuration via `.env`:
-
-```bash
-# Backend
-MODEL_WEIGHTS=backend/models/best.pt
-
-# Frontend
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
-```
-
-## Performance Notes
-
-- Processing speed: ~0.4 seconds/frame on CPU (nano model)
-- ~30-second video = ~5-7 minutes processing time on CPU
-- GPU support available if CUDA is detected automatically
-- JPEG quality: 85% (good balance of quality and bandwidth)
-
-## Troubleshooting
-
-### "No module named ultralytics"
+## Backend Setup
 
 ```bash
 cd backend
-pip install -r requirements.txt
+../.venv/Scripts/python.exe -m pip install -r requirements.txt
 ```
 
-### Frontend can't reach backend
+Start the Flask backend:
 
-- Ensure backend is running on http://127.0.0.1:8000
-- Check `NEXT_PUBLIC_API_BASE_URL` in frontend env
-- Check CORS is enabled in Flask app
+```bash
+cd backend
+../.venv/Scripts/python.exe app.py
+```
 
-### Video upload fails
+The backend runs at:
 
-- Check file size (backend accepts up to Flask's default 16MB)
-- Verify video codec is supported (h264, VP9 recommended)
-- Check disk space in `backend/uploads/`
+```text
+http://127.0.0.1:8000
+```
 
-### Slow processing
+## Frontend Setup
 
-- Running on CPU is normal (~0.4 sec/frame)
-- Disable debug mode in production: change `debug=True` to `debug=False` in `backend/app.py`
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Project Timeline
+The frontend runs at:
 
-- Frame extraction: 1-2 hours
-- Dataset labeling: 2-3 hours
-- Model training: 30 mins - 2 hours (depending on data size)
-- Web app development: ~4 hours
-- **Total: 8-12 hours from raw video to deployed app**
+```text
+http://localhost:3000
+```
+
+## Using the App
+
+1. Start the backend.
+2. Start the frontend.
+3. Open `http://localhost:3000`.
+4. Select a video file.
+5. Click `Start Stream`.
+6. Watch the annotated detection stream and metrics.
+
+## API Endpoints
+
+- `GET /api/health`
+  - Health check.
+
+- `POST /api/stream-video`
+  - Uploads a video and starts a live inference stream.
+  - Body: multipart form data with a `video` file field.
+  - Returns: `run_id`, `stream_url`, and `metrics_url`.
+
+- `GET /api/video-stream`
+  - Returns the live annotated MJPEG stream.
+
+- `GET /api/stream-metrics`
+  - Returns current frame count, FPS, detection counts, current positions, and
+    per-track time on screen.
+
+- `POST /api/stream-stop`
+  - Stops the current live stream.
+
+- `POST /api/process-video`
+  - Batch-processes a full video and writes an annotated MP4.
+
+## Frame Extraction
+
+Raw frames for labeling live in:
+
+```text
+backend/data/frames/raw
+```
+
+Extract evenly spaced frames:
+
+```bash
+cd backend
+../.venv/Scripts/python.exe scripts/extract_frames.py \
+  --video uploads/videoplayback.mp4 \
+  --output-dir data/frames/raw \
+  --target-frames 150 \
+  --prefix videoplayback
+```
+
+Extract random frames:
+
+```bash
+cd backend
+../.venv/Scripts/python.exe scripts/extract_frames.py \
+  --video uploads/videoplayback.mp4 \
+  --output-dir data/frames/raw \
+  --target-frames 150 \
+  --prefix videoplayback \
+  --random \
+  --seed 20260524
+```
+
+The random extraction mode skips existing frame filenames so it does not
+overwrite previously extracted frames.
+
+## Label Studio Workflow
+
+1. Upload frames from `backend/data/frames/raw` to Label Studio.
+2. Label salamanders with bounding boxes.
+3. Use a single class named `salamander`.
+4. Export the project in YOLO format.
+5. Place the YOLO export contents in `backend/data`:
+
+```text
+backend/data/images/
+backend/data/labels/
+backend/data/classes.txt
+backend/data/notes.json
+```
+
+`notes.json` is export metadata. The dataset preparation script uses
+`images/`, `labels/`, and `classes.txt`.
+
+## Prepare the Dataset
+
+From `backend`, run:
+
+```bash
+../.venv/Scripts/python.exe scripts/prepare_dataset.py \
+  --export-dir data \
+  --output data/dataset \
+  --val-fraction 0.2 \
+  --seed 42
+```
+
+This rebuilds:
+
+```text
+backend/data/dataset/images/train
+backend/data/dataset/images/val
+backend/data/dataset/labels/train
+backend/data/dataset/labels/val
+backend/data/dataset/dataset.yaml
+```
+
+The script deletes and recreates the output dataset directory each time.
+
+## Train the Model
+
+From `backend`, run:
+
+```bash
+../.venv/Scripts/python.exe scripts/train.py \
+  --data data/dataset/dataset.yaml \
+  --model yolo11n.pt \
+  --epochs 50 \
+  --imgsz 640 \
+  --batch 8 \
+  --name salamander_run2 \
+  --project runs/detect \
+  --device cpu
+```
+
+Training outputs are written under:
+
+```text
+backend/runs/detect/<run-name>
+```
+
+The important output files are:
+
+```text
+backend/runs/detect/<run-name>/weights/best.pt
+backend/runs/detect/<run-name>/weights/last.pt
+backend/runs/detect/<run-name>/results.csv
+backend/runs/detect/<run-name>/results.png
+```
+
+Use `best.pt` for the app unless you have a specific reason to use `last.pt`.
+
+## Install the Trained Model
+
+Copy the best checkpoint into the active model path:
+
+```bash
+cd backend
+cp runs/detect/salamander_run2/weights/best.pt models/best.pt
+```
+
+Restart the Flask backend after replacing `models/best.pt`.
+
+## Environment Variables
+
+Optional backend model override:
+
+```bash
+MODEL_WEIGHTS=models/best.pt
+```
+
+Optional frontend API base URL:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+```
+
+## Troubleshooting
+
+### `No module named ultralytics`
+
+Install backend dependencies:
+
+```bash
+cd backend
+../.venv/Scripts/python.exe -m pip install -r requirements.txt
+```
+
+### Frontend cannot reach backend
+
+- Confirm the backend is running at `http://127.0.0.1:8000`.
+- Confirm `NEXT_PUBLIC_API_BASE_URL` points to the backend.
+- Restart the frontend after changing environment variables.
+
+### Training writes outside this repo
+
+Use the `--project runs/detect` argument. The training script resolves this to
+an absolute path under `backend/runs/detect`.
+
+### Training is slow
+
+CPU training is expected to be slow. The 50-epoch `salamander_run2` training
+run took about 100 minutes on CPU. Use a CUDA-capable GPU if available.
 
 ## References
 
-- [Ultralytics YOLOv11](https://docs.ultralytics.com/)
-- [Label Studio](https://labelstud.io/)
-- [Flask](https://flask.palletsprojects.com/)
-- [Next.js](https://nextjs.org/)
+- Ultralytics YOLO: https://docs.ultralytics.com/
+- Label Studio: https://labelstud.io/
+- Flask: https://flask.palletsprojects.com/
+- Next.js: https://nextjs.org/
